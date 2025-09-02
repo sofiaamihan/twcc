@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tech Career Match</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --accent:#38bdf8; --text:#e5e7eb; --muted:#9ca3af; --match:#22c55e; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: linear-gradient(160deg,#0f172a 0%, #111827 100%); color: var(--text); display:flex; min-height:100vh; font-size:18px; }
+    .container { max-width: 920px; margin:auto; padding:24px; width:100%; }
+    h1 { font-size:36px; margin:0 0 10px; font-weight:600; }
+    .subtitle { color: var(--muted); margin-bottom:18px; font-size:18px; }
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(4, minmax(0,1fr)); }
+    @media (max-width: 680px) { .grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    .card { position:relative; aspect-ratio: 4/3; }
+    .card button { width:100%; height:100%; border:1px solid #1f2937; background: var(--card); color: var(--text); border-radius:12px; padding:14px; cursor:pointer; transition: transform .15s ease, border-color .2s ease, background .2s ease; display:flex; align-items:center; justify-content:center; text-align:center; font-size:18px; line-height:1.35; }
+    .card button:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .card.flipped button { background: #0b1220; border-color: #334155; }
+    .card.matched button { background: rgba(34,197,94,.12); border-color: var(--match); color: #dcfce7; }
+    .pill { position:absolute; top:8px; right:8px; font-size:13px; border:1px solid #334155; color:#cbd5e1; padding:2px 8px; border-radius:999px; opacity:.85; }
+    .footer { margin-top:16px; font-size:16px; color: var(--muted); }
+    .modal { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,.45); }
+    .modal-inner { background:#0b1220; border:1px solid #334155; color:#cbd5e1; padding:20px 22px; border-radius:12px; width:min(480px, 92vw); box-shadow:0 10px 28px rgba(0,0,0,.45); text-align:center; }
+    .modal-inner h2 { margin:0 0 8px; font-size:24px; }
+    .modal-inner p { margin:0 0 14px; color:#cbd5e1; font-size:16px; }
+    .modal-inner button { background: var(--accent); color:#05202a; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:600; font-size:16px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div>
+      <h1>ITSIG TWCC Game</h1>
+      <div class="subtitle">Match each role to what they do.</div>
+    </div>
+    <div id="root"></div>
+  </div>
+  
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useEffect, useMemo, useState } = React;
+
+    const seedPairs = [
+      { id: 'fe', title: 'Frontend Developer', description: 'Builds websites and web apps you see and click' },
+      { id: 'da', title: 'Data Analyst', description: 'Turns data into charts, reports, and insights' },
+      { id: 'devops', title: 'DevOps Engineer', description: 'Automates builds, testing, and deployments' },
+      { id: 'pm', title: 'Product Manager', description: 'Sets product goals and coordinates the team' },
+      { id: 'ux', title: 'UX Designer', description: 'Designs flows and screens that feel easy to use' },
+      { id: 'sec', title: 'Cybersecurity Analyst', description: 'Protects systems and data from threats' },
+    ];
+
+    function shuffle(array) {
+      const copy = array.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function buildDeck(pairs) {
+      const cards = [];
+      pairs.forEach((p) => {
+        cards.push({ id: p.id + '-t', pairId: p.id, kind: 'title', text: p.title, matched: false });
+        cards.push({ id: p.id + '-d', pairId: p.id, kind: 'desc', text: p.description, matched: false });
+      });
+      return shuffle(cards);
+    }
+
+    function App() {
+      const [deck, setDeck] = useState(() => buildDeck(seedPairs));
+      const [firstCardId, setFirstCardId] = useState(null);
+      const [secondCardId, setSecondCardId] = useState(null);
+      const [isBusy, setIsBusy] = useState(false);
+      const [showComplete, setShowComplete] = useState(false);
+
+      const flippedIds = useMemo(() => {
+        const ids = new Set();
+        if (firstCardId) ids.add(firstCardId);
+        if (secondCardId) ids.add(secondCardId);
+        return ids;
+      }, [firstCardId, secondCardId]);
+
+      const matchedCount = deck.filter(c => c.matched).length;
+      const totalCards = deck.length;
+
+      useEffect(() => {
+        if (firstCardId && secondCardId) {
+          setIsBusy(true);
+          const first = deck.find(c => c.id === firstCardId);
+          const second = deck.find(c => c.id === secondCardId);
+          const isMatch = first && second && first.pairId === second.pairId && first.kind !== second.kind;
+          setTimeout(() => {
+            if (isMatch) {
+              setDeck(prev => prev.map(c => c.pairId === first.pairId ? { ...c, matched: true } : c));
+            }
+            setFirstCardId(null);
+            setSecondCardId(null);
+            setIsBusy(false);
+          }, isMatch ? 350 : 700);
+        }
+      }, [firstCardId, secondCardId, deck]);
+
+      useEffect(() => {
+        if (matchedCount === totalCards && totalCards > 0) {
+          setShowComplete(true);
+        }
+      }, [matchedCount, totalCards]);
+
+      function onReset() {
+        setDeck(buildDeck(seedPairs));
+        setFirstCardId(null);
+        setSecondCardId(null);
+        setShowComplete(false);
+      }
+
+      function onCardClick(cardId) {
+        if (isBusy) return;
+        const card = deck.find(c => c.id === cardId);
+        if (!card || card.matched) return;
+        if (firstCardId === cardId) return;
+
+        if (!firstCardId) {
+          setFirstCardId(cardId);
+        } else if (!secondCardId) {
+          setSecondCardId(cardId);
+        }
+      }
+
+      return (
+        <div className="grid" role="grid" aria-label="Tech career matching grid">
+          {deck.map(card => {
+            const isFlipped = flippedIds.has(card.id) || card.matched;
+            return (
+              <div key={card.id} className={`card ${isFlipped ? 'flipped' : ''} ${card.matched ? 'matched' : ''}`} role="gridcell">
+                <span className="pill">{card.kind === 'title' ? 'Role' : 'What they do'}</span>
+                <button
+                  type="button"
+                  disabled={isBusy || card.matched || (secondCardId && !isFlipped)}
+                  aria-pressed={isFlipped}
+                  aria-label={`${card.kind === 'title' ? 'Role' : 'Description'}: ${card.text}`}
+                  onClick={() => onCardClick(card.id)}
+                >
+                  {isFlipped ? card.text : 'Click to reveal'}
+                </button>
+              </div>
+            );
+          })}
+          {showComplete && (
+            <div className="modal" role="dialog" aria-modal="true" aria-labelledby="complete-title">
+              <div className="modal-inner">
+                <h2 id="complete-title">You’ve completed the game!</h2>
+                <p>Great job matching tech careers with what they do.</p>
+                <button type="button" onClick={onReset}>Play again</button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
+
+
