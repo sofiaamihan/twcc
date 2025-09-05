@@ -39,15 +39,9 @@
     </div>
     <div id="root"></div>
   </div>
-  
 
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <script type="text/babel">
-    const { useEffect, useMemo, useState } = React;
-
+  <script>
+    // Career pairs data
     const seedPairs = [
       { id: 'fe', title: 'Frontend Developer', description: 'Builds websites and web apps you see and click' },
       { id: 'da', title: 'Data Analyst', description: 'Turns data into charts, reports, and insights' },
@@ -75,102 +69,125 @@
       return shuffle(cards);
     }
 
-    function App() {
-      const [deck, setDeck] = useState(() => buildDeck(seedPairs));
-      const [firstCardId, setFirstCardId] = useState(null);
-      const [secondCardId, setSecondCardId] = useState(null);
-      const [isBusy, setIsBusy] = useState(false);
-      const [showComplete, setShowComplete] = useState(false);
+    class Game {
+      constructor() {
+        this.deck = buildDeck(seedPairs);
+        this.firstCardId = null;
+        this.secondCardId = null;
+        this.isBusy = false;
+        this.showComplete = false;
+        this.render();
+      }
 
-      const flippedIds = useMemo(() => {
+      get flippedIds() {
         const ids = new Set();
-        if (firstCardId) ids.add(firstCardId);
-        if (secondCardId) ids.add(secondCardId);
+        if (this.firstCardId) ids.add(this.firstCardId);
+        if (this.secondCardId) ids.add(this.secondCardId);
         return ids;
-      }, [firstCardId, secondCardId]);
+      }
 
-      const matchedCount = deck.filter(c => c.matched).length;
-      const totalCards = deck.length;
+      get matchedCount() {
+        return this.deck.filter(c => c.matched).length;
+      }
 
-      useEffect(() => {
-        if (firstCardId && secondCardId) {
-          setIsBusy(true);
-          const first = deck.find(c => c.id === firstCardId);
-          const second = deck.find(c => c.id === secondCardId);
+      get totalCards() {
+        return this.deck.length;
+      }
+
+      checkMatch() {
+        if (this.firstCardId && this.secondCardId) {
+          this.isBusy = true;
+          const first = this.deck.find(c => c.id === this.firstCardId);
+          const second = this.deck.find(c => c.id === this.secondCardId);
           const isMatch = first && second && first.pairId === second.pairId && first.kind !== second.kind;
+          
           setTimeout(() => {
             if (isMatch) {
-              setDeck(prev => prev.map(c => c.pairId === first.pairId ? { ...c, matched: true } : c));
+              this.deck = this.deck.map(c => c.pairId === first.pairId ? { ...c, matched: true } : c);
             }
-            setFirstCardId(null);
-            setSecondCardId(null);
-            setIsBusy(false);
+            this.firstCardId = null;
+            this.secondCardId = null;
+            this.isBusy = false;
+            this.render();
+            
+            if (this.matchedCount === this.totalCards && this.totalCards > 0) {
+              this.showComplete = true;
+              this.render();
+            }
           }, isMatch ? 350 : 700);
         }
-      }, [firstCardId, secondCardId, deck]);
-
-      useEffect(() => {
-        if (matchedCount === totalCards && totalCards > 0) {
-          setShowComplete(true);
-        }
-      }, [matchedCount, totalCards]);
-
-      function onReset() {
-        setDeck(buildDeck(seedPairs));
-        setFirstCardId(null);
-        setSecondCardId(null);
-        setShowComplete(false);
       }
 
-      function onCardClick(cardId) {
-        if (isBusy) return;
-        const card = deck.find(c => c.id === cardId);
+      onReset() {
+        this.deck = buildDeck(seedPairs);
+        this.firstCardId = null;
+        this.secondCardId = null;
+        this.showComplete = false;
+        this.render();
+      }
+
+      onCardClick(cardId) {
+        if (this.isBusy) return;
+        const card = this.deck.find(c => c.id === cardId);
         if (!card || card.matched) return;
-        if (firstCardId === cardId) return;
+        if (this.firstCardId === cardId) return;
 
-        if (!firstCardId) {
-          setFirstCardId(cardId);
-        } else if (!secondCardId) {
-          setSecondCardId(cardId);
+        if (!this.firstCardId) {
+          this.firstCardId = cardId;
+        } else if (!this.secondCardId) {
+          this.secondCardId = cardId;
         }
+        
+        this.render();
+        this.checkMatch();
       }
 
-      return (
-        <div className="grid" role="grid" aria-label="Tech career matching grid">
-          {deck.map(card => {
-            const isFlipped = flippedIds.has(card.id) || card.matched;
-            return (
-              <div key={card.id} className={`card ${isFlipped ? 'flipped' : ''} ${card.matched ? 'matched' : ''}`} role="gridcell">
-                <span className="pill">{card.kind === 'title' ? 'Role' : 'What they do'}</span>
-                <button
-                  type="button"
-                  disabled={isBusy || card.matched || (secondCardId && !isFlipped)}
-                  aria-pressed={isFlipped}
-                  aria-label={`${card.kind === 'title' ? 'Role' : 'Description'}: ${card.text}`}
-                  onClick={() => onCardClick(card.id)}
-                >
-                  {isFlipped ? card.text : 'Click to reveal'}
-                </button>
-              </div>
-            );
-          })}
-          {showComplete && (
-            <div className="modal" role="dialog" aria-modal="true" aria-labelledby="complete-title">
-              <div className="modal-inner">
-                <h2 id="complete-title">You’ve completed the game!</h2>
-                <p>Great job matching tech careers with what they do.</p>
-                <button type="button" onClick={onReset}>Play again</button>
-              </div>
+      render() {
+        const root = document.getElementById('root');
+        const flippedIds = this.flippedIds;
+        
+        const cardsHtml = this.deck.map(card => {
+          const isFlipped = flippedIds.has(card.id) || card.matched;
+          return `
+            <div class="card ${isFlipped ? 'flipped' : ''} ${card.matched ? 'matched' : ''}" role="gridcell">
+              <span class="pill">${card.kind === 'title' ? 'Role' : 'What they do'}</span>
+              <button
+                type="button"
+                ${this.isBusy || card.matched || (this.secondCardId && !isFlipped) ? 'disabled' : ''}
+                aria-pressed="${isFlipped}"
+                aria-label="${card.kind === 'title' ? 'Role' : 'Description'}: ${card.text}"
+                onclick="game.onCardClick('${card.id}')"
+              >
+                ${isFlipped ? card.text : 'Click to reveal'}
+              </button>
             </div>
-          )}
-        </div>
-      );
+          `;
+        }).join('');
+
+        const modalHtml = this.showComplete ? `
+          <div class="modal" role="dialog" aria-modal="true" aria-labelledby="complete-title">
+            <div class="modal-inner">
+              <h2 id="complete-title">You've completed the game!</h2>
+              <p>Great job matching tech careers with what they do.</p>
+              <button type="button" onclick="game.onReset()">Play again</button>
+            </div>
+          </div>
+        ` : '';
+
+        root.innerHTML = `
+          <div class="grid" role="grid" aria-label="Tech career matching grid">
+            ${cardsHtml}
+            ${modalHtml}
+          </div>
+        `;
+      }
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    // Initialize the game when the page loads
+    let game;
+    document.addEventListener('DOMContentLoaded', () => {
+      game = new Game();
+    });
   </script>
 </body>
 </html>
-
-
