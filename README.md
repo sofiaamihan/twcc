@@ -1,7 +1,7 @@
 ﻿# Tech Explorer by ITSIG
 A **Digital Kampong Carnival Booth Game** created by the **Information Technology Student Interest Group** of Temasek Polytechnic. We developed a memory matching game about Information Technology related Careers, run on Python Flask for Raspberry Pi hosting.
 
-<p align="center"> <img src="https://github.com/Troaxx/twcc/blob/main/data/ui.png" alt="UI Screen" height="300px" /> <img src="https://github.com/Troaxx/twcc/blob/main/data/hardware.png" alt="Hardware" height="300px" /> </p>
+<p align="center"> <img src="https://github.com/Troaxx/twcc/blob/main/data/ui.png" alt="UI Screen" height="200px" /> <img src="https://github.com/Troaxx/twcc/blob/main/data/hardware.png" alt="Hardware" height="200px" /> </p>
 
 ## Features
 - Match IT career roles with their respective descriptions
@@ -74,3 +74,4 @@ This is dependent on the network connection of your RaspberryPi.
 - UX Designer
 
 - Cybersecurity Analyst
+
