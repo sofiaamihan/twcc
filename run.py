@@ -9,4 +9,4 @@ from app import app
 if __name__ == '__main__':
     # Run on all interfaces so it can be accessed from other devices on the network
     # Use port 5000 by default, but can be changed if needed
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5001, debug=False)

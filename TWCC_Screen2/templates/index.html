@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ITSIG TWCC Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --accent:#38bdf8; --text:#e5e7eb; --muted:#9ca3af; --match:#22c55e; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: linear-gradient(160deg,#0f172a 0%, #111827 100%); color: var(--text); display:flex; min-height:100vh; font-size:18px; }
+    .container { max-width: 920px; margin:auto; padding:24px; width:100%; }
+    h1 { font-family: Consolas, 'Courier New', monospace; font-size:72px; margin:0 0 10px; font-weight:500; }
+    .subtitle { color: var(--muted); margin-top:18px; margin-bottom:18px; font-size:18px; }
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(4, minmax(0,1fr)); }
+    @media (max-width: 680px) { .grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    .card { position:relative; aspect-ratio: 4/3; }
+    .card button { width:100%; height:100%; border:1px solid #1f2937; background: var(--card); color: var(--text); border-radius:12px; padding:14px; cursor:pointer; transition: transform .15s ease, border-color .2s ease, background .2s ease; display:flex; align-items:center; justify-content:center; text-align:center; font-size:18px; line-height:1.35; }
+    .card button:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .card.flipped button { background: #438c9ac3; border-color: #334155; }
+    .card.matched button { background: rgba(34,197,94,.12); border-color: var(--match); color: #dcfce7; }
+    .pill { position:absolute; top:8px; right:8px; font-size:13px; border:1px solid #334155; color:#cbd5e1; padding:2px 8px; border-radius:999px; opacity:.85; }
+    .footer { margin-top:16px; font-size:16px; color: var(--muted); }
+    .modal { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,.45); }
+    .modal-inner { background:#0b1220; border:1px solid #334155; color:#cbd5e1; padding:20px 22px; border-radius:12px; width:min(480px, 92vw); box-shadow:0 10px 28px rgba(0,0,0,.45); text-align:center; }
+    .modal-inner h2 { margin:0 0 8px; font-size:24px; }
+    .modal-inner p { margin:0 0 14px; color:#cbd5e1; font-size:16px; }
+    .modal-inner button { background: var(--accent); color:#05202a; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:600; font-size:16px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <img src="{{ url_for('static', filename='images/iit-mascot.png') }}" alt="Logo" style="height:130px;">
+        <h1>Tech Explorer</h1>
+      </div>
+      <div class="subtitle">Match each role to what they do.</div>
+    </div>
+    <div id="root"></div>
+  </div>
+
+  <script>
+    setInterval(() => {
+      fetch("/api/reset-check")
+        .then(res => res.json())
+        .then(data => {
+          if (data.reset) {
+            console.log("Reset triggered by button");
+            location.reload(); // Refresh
+          }
+        });
+    }, 1000); // Constantly checking per second
+
+    // Career pairs data
+    const seedPairs = [
+      { id: 'fe', title: 'Frontend Developer', description: 'Builds websites and web apps you see and click' },
+      { id: 'da', title: 'Data Analyst', description: 'Turns data into charts, reports, and insights' },
+      { id: 'devops', title: 'DevOps Engineer', description: 'Automates builds, testing, and deployments' },
+      { id: 'pm', title: 'Product Manager', description: 'Sets product goals and coordinates the team' },
+      { id: 'ux', title: 'UX Designer', description: 'Designs flows and screens that feel easy to use' },
+      { id: 'sec', title: 'Cybersecurity Analyst', description: 'Protects systems and data from threats' },
+    ];
+
+    function shuffle(array) {
+      const copy = array.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function buildDeck(pairs) {
+      const cards = [];
+      pairs.forEach((p) => {
+        cards.push({ id: p.id + '-t', pairId: p.id, kind: 'title', text: p.title, matched: false });
+        cards.push({ id: p.id + '-d', pairId: p.id, kind: 'desc', text: p.description, matched: false });
+      });
+      return shuffle(cards);
+    }
+
+    class Game {
+      constructor() {
+        this.deck = buildDeck(seedPairs);
+        this.firstCardId = null;
+        this.secondCardId = null;
+        this.isBusy = false;
+        this.showComplete = false;
+        this.render();
+      }
+
+      get flippedIds() {
+        const ids = new Set();
+        if (this.firstCardId) ids.add(this.firstCardId);
+        if (this.secondCardId) ids.add(this.secondCardId);
+        return ids;
+      }
+
+      get matchedCount() {
+        return this.deck.filter(c => c.matched).length;
+      }
+
+      get totalCards() {
+        return this.deck.length;
+      }
+
+      checkMatch() {
+        if (this.firstCardId && this.secondCardId) {
+          this.isBusy = true;
+          const first = this.deck.find(c => c.id === this.firstCardId);
+          const second = this.deck.find(c => c.id === this.secondCardId);
+          const isMatch = first && second && first.pairId === second.pairId && first.kind !== second.kind;
+
+          // ? send match result to backend
+          fetch("/api/blink", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ result: isMatch ? "match" : "mismatch" })
+          });
+
+          setTimeout(() => {
+            if (isMatch) {
+              this.deck = this.deck.map(c => c.pairId === first.pairId ? { ...c, matched: true } : c);
+            }
+            this.firstCardId = null;
+            this.secondCardId = null;
+            this.isBusy = false;
+            this.render();
+            
+            if (this.matchedCount === this.totalCards && this.totalCards > 0) {
+              this.showComplete = true;
+              this.render();
+            }
+        }, isMatch ? 350 : 1500); // Timing of cards to stay open
+  }
+}
+
+      onReset() {
+        this.deck = buildDeck(seedPairs);
+        this.firstCardId = null;
+        this.secondCardId = null;
+        this.showComplete = false;
+        this.render();
+      }
+
+      onCardClick(cardId) {
+        if (this.isBusy) return;
+        const card = this.deck.find(c => c.id === cardId);
+        if (!card || card.matched) return;
+        if (this.firstCardId === cardId) return;
+
+        if (!this.firstCardId) {
+          this.firstCardId = cardId;
+        } else if (!this.secondCardId) {
+          this.secondCardId = cardId;
+        }
+        
+        this.render();
+        this.checkMatch();
+      }
+
+      render() {
+        const root = document.getElementById('root');
+        const flippedIds = this.flippedIds;
+        
+        const cardsHtml = this.deck.map(card => {
+          const isFlipped = flippedIds.has(card.id) || card.matched;
+          return `
+            <div class="card ${isFlipped ? 'flipped' : ''} ${card.matched ? 'matched' : ''}" role="gridcell">
+              <span class="pill">${card.kind === 'title' ? 'Role' : 'What they do'}</span>
+              <button
+                type="button"
+                ${this.isBusy || card.matched || (this.secondCardId && !isFlipped) ? 'disabled' : ''}
+                aria-pressed="${isFlipped}"
+                aria-label="${card.kind === 'title' ? 'Role' : 'Description'}: ${card.text}"
+                onclick="game.onCardClick('${card.id}')"
+              >
+                ${isFlipped ? card.text : 'Click to reveal'}
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        const modalHtml = this.showComplete ? `
+          <div class="modal" role="dialog" aria-modal="true" aria-labelledby="complete-title">
+            <div class="modal-inner">
+              <h2 id="complete-title">You've completed the game!</h2>
+              <p>Great job matching tech careers with what they do.</p>
+              <button type="button" onclick="game.onReset()">Play again</button>
+            </div>
+          </div>
+        ` : '';
+
+        root.innerHTML = `
+          <div class="grid" role="grid" aria-label="Tech career matching grid">
+            ${cardsHtml}
+            ${modalHtml}
+          </div>
+        `;
+      }
+    }
+
+    // Initialize the game when the page loads
+    let game;
+    document.addEventListener('DOMContentLoaded', () => {
+      game = new Game();
+    });
+  </script>
+</body>
+</html>
+
