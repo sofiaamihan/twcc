@@ -1,5 +1,5 @@
 ﻿# Tech Explorer by ITSIG
-A **Digital Kampong Carnival Booth Game** designed and engineered by the **Information Technology Student Interest Group (ITSIG)** of Temasek Polytechnic.
+A **Digital Kampong Carnival Booth Game** designed and engineered by the **Information Technology Student Interest Group (ITSIG)** of Temasek Polytechnic for the [Tampines West Community Club](https://www.facebook.com/tampineswest/).
 
 This project implements a memory-matching game centred on Information Technology career pathways, architected using Python Flask as the web framework, hosted directly on Raspberry Pi hardware with GPIO-driven LED indicators and button configurations. The system combines lightweight web deployment with embedded hardware interaction to demonstrate the application of the Diploma of Information Technology's application of physical computing and digital interactivity.
 
@@ -87,5 +87,6 @@ This modular integration allows synchronous web interaction while maintaining as
 ## Developers
 - Daniella Han Xue En [@Troaxx](https://github.com/Troaxx)
 - Respeto Sofia Amihan Molase [@sofiaamihan](https://github.com/sofiaamihan)
+
 
 
