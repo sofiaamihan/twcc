@@ -84,4 +84,8 @@ This modular integration allows synchronous web interaction while maintaining as
 - UX Designer
 - Cybersecurity Analyst
 
+## Developers
+- Daniella Han Xue En [@Troaxx](https://github.com/Troaxx)
+- Respeto Sofia Amihan Molase [@sofiaamihan](https://github.com/sofiaamihan)
+
 
