@@ -84,9 +84,13 @@ This modular integration allows synchronous web interaction while maintaining as
 - UX Designer
 - Cybersecurity Analyst
 
+## Licensing
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ## Developers
 - Daniella Han Xue En [@Troaxx](https://github.com/Troaxx)
 - Respeto Sofia Amihan Molase [@sofiaamihan](https://github.com/sofiaamihan)
+
 
 
 
