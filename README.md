@@ -90,6 +90,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Developers
 - Daniella Han Xue En [@Troaxx](https://github.com/Troaxx)
 - Respeto Sofia Amihan Molase [@sofiaamihan](https://github.com/sofiaamihan)
+> Original Collaborative Repository is located [here](https://github.com/Troaxx/twcc).
 
 
 
